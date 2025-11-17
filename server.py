@@ -23,6 +23,7 @@ CLIENT_REQUEST_ESTABILISH_SECRET_GO_MESSAGE = 1
 CLIENT_REQUEST_ESTABILISH_INCOMING_SECRET_MESSAGE = 2
 CLIENT_REQUEST_ESTABILISH_FAILED_MESSAGE = 3
 CLIENT_INCOMING_CHAT_MESSAGE = 4
+CLIENT_TARGET_CHAT_LEFT_MESSAGE = 5
 
 class Message:
     type: int
@@ -206,6 +207,14 @@ def run_select_server():
                                 send_message(sock, error_message)
                                 continue
 
+                            target_sock = clients_socket_by_session_id[target_id]
+                            if(inputs.__contains__(target_sock) == False):
+                                error_message = Message()
+                                error_message.create(CLIENT_REQUEST_ESTABILISH_FAILED_MESSAGE)
+                                error_message.write_int(target_id)
+                                send_message(sock, error_message)
+                                continue
+
                             target_e, target_n = target_public_key
 
                             key_message = Message()
@@ -224,7 +233,7 @@ def run_select_server():
                             client_des_encrypted = message.read_string()
 
                             target_sock = clients_socket_by_session_id.get(target_id)
-                            if(target_sock == None):
+                            if(target_sock == None or inputs.__contains__(target_sock) == False):
                                 error_message = Message()
                                 error_message.create(CLIENT_REQUEST_ESTABILISH_FAILED_MESSAGE)
                                 error_message.write_int(target_id)
@@ -244,16 +253,25 @@ def run_select_server():
                             secret_message.write_string(client_secret_signature)
                             secret_message.write_string(client_des_encrypted)
 
+                            print(f"Client {from_id} sending encrypted DES to {target_id}. With key: {client_des_encrypted}")
+
                             send_message(target_sock, secret_message)
                         
                         elif(message.type == SERVER_CHAT_MESSAGE):
                             target_id = message.read_int()
                             encrypted_string = message.read_string()
 
+                            print(f"Incoming from {from_id}, target {target_id}, with message : {encrypted_string}")
+
                             from_id = clients_session_id_by_sock[sock]
                             target_sock = clients_socket_by_session_id[target_id]
 
-                            print(f"Incoming from {from_id}, target {target_id}, with message : {encrypted_string}")
+                            if(inputs.__contains__(target_sock) == False):
+                                fail_message = Message()
+                                fail_message.create(CLIENT_TARGET_CHAT_LEFT_MESSAGE)
+                                fail_message.write_int(target_id)
+                                send_message(sock, fail_message)
+                                continue
 
                             chat_message = Message()
                             chat_message.create(CLIENT_INCOMING_CHAT_MESSAGE)

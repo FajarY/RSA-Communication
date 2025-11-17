@@ -27,6 +27,7 @@ CLIENT_REQUEST_ESTABILISH_SECRET_GO_MESSAGE = 1
 CLIENT_REQUEST_ESTABILISH_INCOMING_SECRET_MESSAGE = 2
 CLIENT_REQUEST_ESTABILISH_FAILED_MESSAGE = 3
 CLIENT_INCOMING_CHAT_MESSAGE = 4
+CLIENT_TARGET_CHAT_LEFT_MESSAGE = 5
 
 estabilish_wait_semaphore = threading.Semaphore(0)
 send_lock = threading.Lock()
@@ -98,7 +99,6 @@ class Message:
 
     def read_string_decrypted(self, key: str):
         encrypted_string = self.read_string()
-        print(encrypted_string)
         decrypted_string = DES.decrypt_buffer(encrypted_string, key, True)
 
         return decrypted_string.decode()
@@ -244,7 +244,12 @@ def receive_messages(client_socket: socket):
                 from_public_key, from_secret_key = other_clients_receive_public_secret_key[from_id]
 
                 chat = message.read_string_decrypted(from_secret_key)
-                print(f"{from_id}: {chat}")
+                print(f"Reveived message from {from_id}: {chat}")
+
+            elif(message.type == CLIENT_TARGET_CHAT_LEFT_MESSAGE):
+                target_id = message.read_int()
+
+                print(f"Failed when sending message to {target_id}, client already left the room")
         
         except Exception as e:
             if client_closed == False:
@@ -292,7 +297,7 @@ def run_chat_client():
                 client_closed = True
                 break
             elif len(message) != 0:
-                parsed = message.split(":", 2)
+                parsed = message.split(":", 1)
                 if(len(parsed) != 2):
                     print("Error chat format!")
                     continue
@@ -316,7 +321,7 @@ def run_chat_client():
 
                     target_data = other_clients_send_public_secret_key.get(target_id)
                     if(target_data == None):
-                        print(f"There was an error when handshaking {target_id}, skipping message")
+                        print(f"There was an error when handshaking {target_id}, probably target not found, skipping message")
                         continue
 
                 target_public_key, target_des_key = target_data
