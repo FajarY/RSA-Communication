@@ -68,6 +68,10 @@ def generate_rsa_key(bits):
     while True:
         p = generate_prime_number(bits // 2)
         q = generate_prime_number(bits // 2)
+
+        if(p == q):
+            continue
+
         n = p * q
 
         o_n = (p - 1) * (q - 1)
