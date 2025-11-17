@@ -58,7 +58,7 @@ class Message:
         self.position += count
         return data
 
-    def write_bytes(self, buffer : bytes | bytearray):
+    def write_bytes(self, buffer):
         self.buffer += buffer
         self.position += len(buffer)
 
